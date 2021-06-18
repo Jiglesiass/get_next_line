@@ -6,7 +6,7 @@
 /*   By: joiglesi <joiglesi@student.42urduliz.com>  +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2021/06/15 10:12:11 by joiglesi          #+#    #+#             */
-/*   Updated: 2021/06/17 11:47:49 by joiglesi         ###   ########.fr       */
+/*   Updated: 2021/06/18 14:43:52 by joiglesi         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -15,7 +15,7 @@
 #include <fcntl.h>
 #include <stdio.h>
 
-int	ft_buff_init(char **buff)
+int	ft_buff_init(char **buff, char **buff_cpy)
 {
 	int	i;
 
@@ -24,8 +24,8 @@ int	ft_buff_init(char **buff)
 		*buff = (char *)malloc(sizeof(char) * (BUFFER_SIZE + 1));
 		if (!(*buff))
 			return (0);
+		*buff_cpy = *buff;
 		printf("original buff addr: %p\n", *buff);
-		//(*buff)[BUFFER_SIZE] = '\0';
 		i = 0;
 		while(i <= BUFFER_SIZE)
 			(*buff)[i++] = '\0';
@@ -55,7 +55,7 @@ size_t	ft_strlen(const char *s)
 	return (len);
 }
 
-int	ft_buffcpy(char **line, char **buff, int bytes, int *total)
+int	ft_buffcpy(char *buff_cpy, char **line, char **buff, int bytes, int *total)
 {
 	char	*tmp;
 	int		i;
@@ -68,23 +68,31 @@ int	ft_buffcpy(char **line, char **buff, int bytes, int *total)
 	if (!(*line))
 		return (-1);
 	i = 0;
-	while (i < *total)
+	while (i < *total && **buff != '\n')
 	{
 		(*line)[i] = tmp[i];
 		i++;
 	}
-	while (i < *total + bytes)
+	while (i < *total + bytes && **buff != '\n')
 	{
 		(*line)[i++] = **buff;
 		*buff += 1;
 	}
-	(*line)[i] = '\0';
+	if (**buff != '\n')
+		(*line)[i] = '\0';
 	if (**buff == '\n')
 		*buff += 1;
-	if (**buff == '\0' && bytes > 0)
+	if (**buff == '\0')
 	{
-		printf("resetting buff address\n");
-		*buff -= BUFFER_SIZE;
+		printf("end of buff reached\n");
+		if (*(*buff - 1) == '\n')
+		{	
+			*buff = buff_cpy;
+			printf("freeing buff (%p)\n", *buff);
+			free(*buff);
+			*buff = NULL;
+		}
+		*buff = buff_cpy;
 	}
 	*total += bytes;
 	printf("buff after cpy: [%s] (%p)\nline after cpy: [%s]\n", *buff, *buff, *line);
@@ -96,22 +104,23 @@ int	ft_buffcpy(char **line, char **buff, int bytes, int *total)
 int	get_next_line(int fd, char **line)
 {
 	static char	*buff;
+	static char	*buff_cpy;
 	int			total_bytes;
 	int			bytes_read;
 	int			endl;
 
-	if (!ft_buff_init(&buff))
+	if (!ft_buff_init(&buff, &buff_cpy))
 		return (-1);
 	*line = NULL;
 	total_bytes = 0;
 	endl = ft_strchr(buff);
 	if (!endl)
 	{
-		if (ft_buffcpy(line, &buff, ft_strlen(buff), &total_bytes) == -1)
+		if (ft_buffcpy(buff_cpy, line, &buff, ft_strlen(buff), &total_bytes) == -1)
 			return (-1);
 	}
 	else
-		return (ft_buffcpy(line, &buff, endl, &total_bytes));
+		return (ft_buffcpy(buff_cpy, line, &buff, endl, &total_bytes));
 	bytes_read = 1;
 	while ((bytes_read = read(fd, buff, BUFFER_SIZE)))
 	{
@@ -119,15 +128,18 @@ int	get_next_line(int fd, char **line)
 		endl = ft_strchr(buff);
 		if (!endl)
 		{
-			if (ft_buffcpy(line, &buff, ft_strlen(buff), &total_bytes) == -1)
+			if (ft_buffcpy(buff_cpy, line, &buff, ft_strlen(buff), &total_bytes) == -1)
 				return (-1);
 		}
 		else
-			return (ft_buffcpy(line, &buff, endl, &total_bytes));
+			return (ft_buffcpy(buff_cpy, line, &buff, endl, &total_bytes));
 	}
 	printf("trying to free addr: %p\n", buff);
-	free(buff);
-	**line = '\0';
+	buff = buff_cpy;
+	if (buff)
+		free(buff);
+	if (*line)
+		**line = '\0';
 	return (0);
 }
 
@@ -154,36 +166,3 @@ int	main(int argc, char **argv)
 	close(fd);
 	return (0);
 }
-
-/*int	main(void)
-{
-	char	*line;
-	int		fd;
-	int		r;
-
-	fd = open("lines", O_RDONLY);
-	if (fd == -1)
-		return (1);
-	r = get_next_line(fd, &line);
-	printf("\n\n---------- MAIN OUTPUT ----------\n");
-	printf("line: %s\nreturn: %d\n", line, r);
-	printf("---------------------------------\n\n");
-	free(line);
-	r = get_next_line(fd, &line);
-	printf("\n\n---------- MAIN OUTPUT ----------\n");
-	printf("line: %s\nreturn: %d\n", line, r);
-	printf("---------------------------------\n\n");
-	free(line);
-	r = get_next_line(fd, &line);
-	printf("\n\n---------- MAIN OUTPUT ----------\n");
-	printf("line: %s\nreturn: %d\n", line, r);
-	printf("---------------------------------\n\n");
-	free(line);
-	r = get_next_line(fd, &line);
-	printf("\n\n---------- MAIN OUTPUT ----------\n");
-	printf("line: %s\nreturn: %d\n", line, r);
-	printf("---------------------------------\n\n");
-	free(line);
-	close(fd);
-	return (0);
-}*/
