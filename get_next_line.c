@@ -5,45 +5,26 @@
 /*                                                    +:+ +:+         +:+     */
 /*   By: joiglesi <joiglesi@student.42urduliz.com>  +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
-/*   Created: 2021/06/15 10:12:11 by joiglesi          #+#    #+#             */
-/*   Updated: 2021/06/18 14:43:52 by joiglesi         ###   ########.fr       */
+/*   Created: 2021/06/21 08:41:36 by joiglesi          #+#    #+#             */
+/*   Updated: 2021/06/22 12:30:32 by joiglesi         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
-#include <stdlib.h>
-#include <unistd.h>
-#include <fcntl.h>
 #include <stdio.h>
+#include <fcntl.h>
+#include <unistd.h>
+#include <stdlib.h>
 
-int	ft_buff_init(char **buff, char **buff_cpy)
-{
-	int	i;
+#ifndef BUFFER_SIZE
+# define BUFFER_SIZE = 32
+#endif
 
-	if (!(*buff))
-	{
-		*buff = (char *)malloc(sizeof(char) * (BUFFER_SIZE + 1));
-		if (!(*buff))
-			return (0);
-		*buff_cpy = *buff;
-		printf("original buff addr: %p\n", *buff);
-		i = 0;
-		while(i <= BUFFER_SIZE)
-			(*buff)[i++] = '\0';
-	}
-	return (1);
-}
-
-int	ft_strchr(const char *buff)
-{
-	int	i;
-
-	i = 0;
-	while (buff[i] && buff[i] != '\n')
-		i++;
-	if (buff[i] == '\n')
-		return (i);
-	return (0);
-}
+typedef struct	s_buff {
+	int				fd;
+	char			**lines;
+	int				index;
+	struct s_buff	*next;
+}					t_buff;
 
 size_t	ft_strlen(const char *s)
 {
@@ -55,114 +36,181 @@ size_t	ft_strlen(const char *s)
 	return (len);
 }
 
-int	ft_buffcpy(char *buff_cpy, char **line, char **buff, int bytes, int *total)
+int	ft_strnchr(const char *s, char c)
 {
-	char	*tmp;
-	int		i;
+	int	i;
 
-	printf("ft_buffcpy called: copying %d bytes from [%s]\nThen appending %d bytes from [%s](%p)\n", *total, *line, bytes, *buff, *buff);
-	if (!bytes)
-		return (0);
-	tmp = *line;
-	*line = (char *)malloc(sizeof(char) * (*total + bytes + 1));
-	if (!(*line))
-		return (-1);
 	i = 0;
-	while (i < *total && **buff != '\n')
+	while (s[i])
 	{
-		(*line)[i] = tmp[i];
+		if (s[i] == c)
+			return (i);
 		i++;
 	}
-	while (i < *total + bytes && **buff != '\n')
+	return (i);
+}
+
+char	*ft_substr(char const *s, unsigned int start, size_t len)
+{
+	char	*substr;
+	size_t	i;
+
+	if (!s)
+		return (NULL);
+	if (start >= ft_strlen(s))
+		substr = (char *)malloc(sizeof(char));
+	else
+		substr = (char *)malloc(len * sizeof(char) + 1);
+	if (substr == NULL)
+		return (NULL);
+	i = 0;
+	while (i < len && start < ft_strlen(s))
+		substr[i++] = s[start++];
+	substr[i] = '\0';
+	return (substr);
+}
+
+static int	ft_split_count(const char *s, char c)
+{
+	int	c_index;
+	int	count;
+	int	i;
+
+	count = 0;
+	i = ft_strlen(s);
+	while (i > 0)
 	{
-		(*line)[i++] = **buff;
-		*buff += 1;
+		c_index = ft_strnchr(s, c);
+		if (c_index > 0)
+			count++;
+		s += c_index + 1;
+		i -= (c_index + 1);
 	}
-	if (**buff != '\n')
-		(*line)[i] = '\0';
-	if (**buff == '\n')
-		*buff += 1;
-	if (**buff == '\0')
+	return (count);
+}
+
+static int	ft_null_case(char **split, int index)
+{
+	split[index + 1] = NULL;
+	if (!split[index])
 	{
-		printf("end of buff reached\n");
-		if (*(*buff - 1) == '\n')
-		{	
-			*buff = buff_cpy;
-			printf("freeing buff (%p)\n", *buff);
-			free(*buff);
-			*buff = NULL;
+		while (*split)
+			free(*(split++));
+		free(split);
+		return (1);
+	}
+	return (0);
+}
+
+char	**ft_split(const char *s, char c)
+{
+	char	**split;
+	int		c_index;
+	int		split_index;
+	int		count;
+
+	if (!s)
+		return (NULL);
+	count = ft_split_count(s, c);
+	split = (char **)malloc(sizeof(char *) * (count + 1));
+	if (!split)
+		return (NULL);
+	*split = NULL;
+	split_index = 0;
+	while (split_index < count)
+	{
+		c_index = ft_strnchr(s, c);
+		if (c_index > 0)
+		{
+			split[split_index++] = ft_substr(s, 0, c_index);
+			if (ft_null_case(split, split_index - 1))
+				return (NULL);
 		}
-		*buff = buff_cpy;
+		s += c_index + 1;
 	}
-	*total += bytes;
-	printf("buff after cpy: [%s] (%p)\nline after cpy: [%s]\n", *buff, *buff, *line);
-	if (tmp)
-		free(tmp);
-	return (1);
+	return (split);
+}
+
+t_buff	*ft_fd_search(t_buff *lst, int fd)
+{
+	t_buff	*tr;
+
+	if (!lst)
+		return (NULL);
+	tr = lst;
+	while (tr)
+	{
+		if (tr->fd == fd)
+			return (tr);
+		tr = tr->next;
+	}
+	return (NULL);
+}
+
+int	ft_lstadd_front(t_buff **alst, t_buff *new)
+{
+	if (!new)
+		return (1);
+	new->next = *alst;
+	*alst = new;
+	return (0);
+}
+
+t_buff	*ft_lstnew(int fd)
+{
+	t_buff	*new;
+
+	new = (t_buff *)malloc(sizeof(t_buff));
+	if (!new)
+		return (NULL);
+	new->fd = fd;
+	new->index = 0;
+	new->next = NULL;
+	return (new);
+}
+
+char	*ft_read_file(int fd)
+{
+	char	*buff;
+	char	*tmp;
+	int		b_read;
+	int		b_total;
+
+	b_total = BUFFER_SIZE;
+	buff = (char *)malloc(sizeof(char) * b_total);
+	while (b_read)
+	{
+		b_read = read(fd, buff, BUFFER_SIZE);
+		b_total += b_read;
+		buff = (char *)malloc(sizeof(char) * b_total);
+		b_total += b_read;
+	}
 }
 
 int	get_next_line(int fd, char **line)
 {
-	static char	*buff;
-	static char	*buff_cpy;
-	int			total_bytes;
-	int			bytes_read;
-	int			endl;
+	static t_buff	*buffers;
+	t_buff			*current;
+	char			*buff;
 
-	if (!ft_buff_init(&buff, &buff_cpy))
+	if (fd == -1)
 		return (-1);
-	*line = NULL;
-	total_bytes = 0;
-	endl = ft_strchr(buff);
-	if (!endl)
-	{
-		if (ft_buffcpy(buff_cpy, line, &buff, ft_strlen(buff), &total_bytes) == -1)
+	if (!ft_fd_search(buffers, fd))
+		if(ft_lstadd_front(&buffers, ft_lstnew(fd)))
 			return (-1);
-	}
-	else
-		return (ft_buffcpy(buff_cpy, line, &buff, endl, &total_bytes));
-	bytes_read = 1;
-	while ((bytes_read = read(fd, buff, BUFFER_SIZE)))
+	current = ft_fd_search(buffers, fd);
+	if (current && current->lines && current->lines[current->index])
 	{
-		printf("%d bytes read: [%s] (%p)\n", bytes_read, buff, buff);
-		endl = ft_strchr(buff);
-		if (!endl)
-		{
-			if (ft_buffcpy(buff_cpy, line, &buff, ft_strlen(buff), &total_bytes) == -1)
-				return (-1);
-		}
-		else
-			return (ft_buffcpy(buff_cpy, line, &buff, endl, &total_bytes));
+		*line = current->lines[current->index];
+		free(current->lines[current->index]);
+		current->lines[current->index] = NULL;
+		return (1);
 	}
-	printf("trying to free addr: %p\n", buff);
-	buff = buff_cpy;
-	if (buff)
-		free(buff);
-	if (*line)
-		**line = '\0';
+	buff = ft_read_file(fd);
 	return (0);
 }
 
-int	main(int argc, char **argv)
+int	main(void)
 {
-	char	*line;
-	int		bytes;
-	int		fd;
-	int		i;
-
-	if (argc < 1)
-		return (1);
-	fd = open(argv[1], O_RDONLY);
-	i = 1;
-	while ((bytes = get_next_line(fd, &line)))
-	{
-		printf("\n\n---------- MAIN OUTPUT ----------\n");
-		printf("line %d: %s\nreturn: %d\n", i++, line, bytes);
-		printf("---------------------------------\n\n");
-		free(line);
-		if (bytes == -1)
-			break ;
-	}
-	close(fd);
 	return (0);
 }
