@@ -6,7 +6,7 @@
 /*   By: joiglesi <joiglesi@student.42urduliz.com>  +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2021/06/21 08:41:36 by joiglesi          #+#    #+#             */
-/*   Updated: 2021/06/23 15:43:59 by joiglesi         ###   ########.fr       */
+/*   Updated: 2021/06/23 15:54:07 by joiglesi         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -220,6 +220,21 @@ int	get_next_line(int fd, char **line)
 
 int	main(void)
 {
-	printf("Hello 42\n");
+	char	*line;
+	int		fd;
+	int		r;
+	int		i;
+
+	fd = open("lines", O_RDONLY);
+	if (fd == -1)
+		return (1);
+	i = 1;
+	while ((r = get_next_line(fd, &line)))
+	{
+		printf("line %d: %s\nreturn: %d\n", i++, line, r);
+		free(line);
+		if (r == -1)
+			break;
+	}
 	return (0);
 }
