@@ -6,24 +6,11 @@
 /*   By: joiglesi <joiglesi@student.42urduliz.com>  +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2021/06/21 08:41:36 by joiglesi          #+#    #+#             */
-/*   Updated: 2021/06/24 09:47:05 by joiglesi         ###   ########.fr       */
+/*   Updated: 2021/06/24 15:41:22 by joiglesi         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
-#include <stdio.h>
-#include <fcntl.h>
-#include <unistd.h>
-#include <stdlib.h>
-
-#ifndef BUFFER_SIZE
-# define BUFFER_SIZE 32
-#endif
-
-typedef struct s_buff {
-	int				fd;
-	char			*buff;
-	struct s_buff	*next;
-}					t_buff;
+#include "get_next_line.h"
 
 size_t	ft_strlen(const char *s, char c)
 {
@@ -32,7 +19,7 @@ size_t	ft_strlen(const char *s, char c)
 	if (!s)
 		return (0);
 	len = 0;
-	while (s[len] != c)
+	while (s[len] && s[len] != c)
 		len++;
 	return (len);
 }
@@ -51,118 +38,42 @@ char	*ft_strchr(const char *s, int c)
 	return (NULL);
 }
 
-char	*ft_substr(char const *s, unsigned int start, size_t len)
-{
-	char	*substr;
-	size_t	i;
-
-	//printf("substr input: s=[%s]\nlen=%zu\n", s, len);
-	if (!s)
-		return (NULL);
-	if (start >= ft_strlen(s, '\0'))
-		substr = (char *)malloc(sizeof(char));
-	else
-		substr = (char *)malloc(len * sizeof(char) + 1);
-	if (substr == NULL)
-	{
-		free((char *)s);
-		return (NULL);
-	}
-	i = 0;
-	while (i < len && start < ft_strlen(s, '\0'))
-		substr[i++] = s[start++];
-	substr[i] = '\0';
-	//printf("substr output: [%s]\n", substr);
-	return (substr);
-}
-
-t_buff	*ft_fd_search(t_buff *lst, int fd)
+int	ft_fd_finish(t_buff *current, t_buff **buffers)
 {
 	t_buff	*tr;
+	t_buff	*prev;
 
-	if (!lst)
-		return (NULL);
-	tr = lst;
-	while (tr)
+	tr = NULL;
+	prev = *buffers;
+	if (prev->next)
 	{
-		if (tr->fd == fd)
-			return (tr);
-		tr = tr->next;
+		tr = prev->next;
+		while (tr)
+		{
+			if (tr == current)
+				break;
+			prev = tr;
+			tr = tr->next;
+		}
+		prev->next = tr->next;
+		free(tr->buff);
+		free(tr);
 	}
-	return (NULL);
-}
-
-int	ft_lstadd_front(t_buff **alst, t_buff *new)
-{
-	if (!new)
-		return (1);
-	new->next = *alst;
-	*alst = new;
+	else
+	{
+		free(prev->buff);
+		free(prev);
+	}
 	return (0);
 }
 
-t_buff	*ft_lstnew(int fd)
-{
-	t_buff	*new;
-
-	new = (t_buff *)malloc(sizeof(t_buff));
-	if (!new)
-		return (NULL);
-	new->fd = fd;
-	new->buff = NULL;
-	new->next = NULL;
-	return (new);
-}
-
-char	*ft_strjoin(char const *s1, char const *s2)
-{
-	char	*jstr;
-	size_t	len;
-	size_t	i;
-	size_t	j;
-
-	//printf("strjoin input: s1=[%s] s2=[%s]\n", s1, s2);
-	len = ft_strlen(s1, '\0') + ft_strlen(s2, '\0');
-	jstr = (char *)malloc(sizeof(char) * (len + 1));
-	if (jstr == NULL)
-	{
-		free((char *)s1);
-		return (NULL);
-	}
-	len = ft_strlen(s1, '\0');
-	i = -1;
-	while (++i < len)
-		jstr[i] = s1[i];
-	len += ft_strlen(s2, '\0');
-	j = 0;
-	while (i < len)
-		jstr[i++] = s2[j++];
-	jstr[i] = '\0';
-	free((char *)s1);
-	//printf("jstr=[%s]\n", jstr);
-	return (jstr);
-}
-
-int	ft_fd_finish(t_buff *current, char *buff, char **line)
-{
-	*line = ft_strjoin(*line, ft_substr(buff, 0, ft_strlen(buff, '\n')));
-	if (!(*line))
-		return (-1);
-	free(buff);
-	free(current);
-	return (0);
-}
-
-char	*ft_read_line(int fd, int bufflen)
+char	*ft_read_line(int fd)
 {
 	char	*buff;
 	char	*tmp;
 	int		b_read;
 
-	if (bufflen)
-		buff = ft_strjoin(tmp, buff);
-	else
-		buff = NULL;
+	buff = NULL;
 	b_read = BUFFER_SIZE;
 	while (ft_strchr(buff, '\n') == NULL && b_read == BUFFER_SIZE)
 	{
@@ -183,20 +94,18 @@ int	get_next_line(int fd, char **line)
 	t_buff			*current;
 	char			*buff;
 
+	if (fd < 0 || fd > FOPEN_MAX)
+		return (-1);
 	*line = NULL;
 	buff = NULL;
-	if (fd == -1)
-		return (-1);
 	if (!ft_fd_search(buffers, fd))
 	{
-		//printf("adding new element for fd=%d\n", fd);
 		if (ft_lstadd_front(&buffers, ft_lstnew(fd)))
 			return (-1);
 	}
 	current = ft_fd_search(buffers, fd);
 	if (current->buff)
 	{
-		//printf("remaining buff detected: [%s]\n", current->buff);
 		if (ft_strchr(current->buff, '\n'))
 		{
 			*line = ft_substr(current->buff, 0, ft_strlen(current->buff, '\n'));
@@ -206,21 +115,22 @@ int	get_next_line(int fd, char **line)
 				return (-1);
 			return (1);
 		}
+		if (current->last && !current->buff[0])
+			return (ft_fd_finish(current, &buffers));
 		*line = current->buff;
 		current->buff = NULL;
 	}
-	//printf("before read buff=[%s]\n", buff);
-	buff = ft_strjoin(buff, ft_read_line(fd, ft_strlen(buff, '\0')));
-	//printf("after read buff=[%s]\n", buff);
+	buff = ft_strjoin(buff, ft_read_line(fd));
 	if (!buff)
 		return (-1);
 	if (ft_strlen(buff, '\0') < BUFFER_SIZE)
-		return (ft_fd_finish(current, buff, line));
+		current->last = 1;
+	if (!ft_strlen(buff, '\0'))
+		return (ft_fd_finish(current, &buffers));
 	*line = ft_strjoin(*line, ft_substr(buff, 0, ft_strlen(buff, '\n')));
 	current->buff = ft_substr(ft_strchr(buff, '\n') + 1, 0,
 			ft_strlen(ft_strchr(buff, '\n'), '\0'));
 	free(buff);
-	//printf("line=[%s] current->buff=[%s]\n", *line, current->buff);
 	if (!(*line) || !current->buff)
 		return (-1);
 	return (1);
@@ -250,7 +160,7 @@ int	get_next_line(int fd, char **line)
 	free(line);
 }*/
 
-int	main(void)
+/*int	main(void)
 {
 	char	*line;
 	int		fd;
@@ -268,7 +178,8 @@ int	main(void)
 		if (r == -1)
 			break;
 	}
-	printf("line %d: %s\nreturn: %d\n", i++, line, r);
-	free(line);
+	printf("----- Final Values -----\n");
+	printf("line=[%s]\n", line);
+	printf("r=%d\n", r);
 	return (0);
-}
+}*/
