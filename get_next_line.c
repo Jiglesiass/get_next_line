@@ -6,7 +6,7 @@
 /*   By: joiglesi <joiglesi@student.42urduliz.com>  +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2021/06/21 08:41:36 by joiglesi          #+#    #+#             */
-/*   Updated: 2021/06/23 15:54:07 by joiglesi         ###   ########.fr       */
+/*   Updated: 2021/06/24 09:47:05 by joiglesi         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -56,6 +56,7 @@ char	*ft_substr(char const *s, unsigned int start, size_t len)
 	char	*substr;
 	size_t	i;
 
+	//printf("substr input: s=[%s]\nlen=%zu\n", s, len);
 	if (!s)
 		return (NULL);
 	if (start >= ft_strlen(s, '\0'))
@@ -71,7 +72,7 @@ char	*ft_substr(char const *s, unsigned int start, size_t len)
 	while (i < len && start < ft_strlen(s, '\0'))
 		substr[i++] = s[start++];
 	substr[i] = '\0';
-	free((char *)s);
+	//printf("substr output: [%s]\n", substr);
 	return (substr);
 }
 
@@ -120,12 +121,12 @@ char	*ft_strjoin(char const *s1, char const *s2)
 	size_t	i;
 	size_t	j;
 
+	//printf("strjoin input: s1=[%s] s2=[%s]\n", s1, s2);
 	len = ft_strlen(s1, '\0') + ft_strlen(s2, '\0');
 	jstr = (char *)malloc(sizeof(char) * (len + 1));
 	if (jstr == NULL)
 	{
 		free((char *)s1);
-		free((char *)s2);
 		return (NULL);
 	}
 	len = ft_strlen(s1, '\0');
@@ -138,7 +139,7 @@ char	*ft_strjoin(char const *s1, char const *s2)
 		jstr[i++] = s2[j++];
 	jstr[i] = '\0';
 	free((char *)s1);
-	free((char *)s2);
+	//printf("jstr=[%s]\n", jstr);
 	return (jstr);
 }
 
@@ -188,35 +189,66 @@ int	get_next_line(int fd, char **line)
 		return (-1);
 	if (!ft_fd_search(buffers, fd))
 	{
+		//printf("adding new element for fd=%d\n", fd);
 		if (ft_lstadd_front(&buffers, ft_lstnew(fd)))
 			return (-1);
 	}
 	current = ft_fd_search(buffers, fd);
 	if (current->buff)
 	{
+		//printf("remaining buff detected: [%s]\n", current->buff);
 		if (ft_strchr(current->buff, '\n'))
 		{
-			*line = ft_substr(current->buff, 0, ft_strlen(buff, '\n'));
-			current->buff = ft_substr(ft_strchr(current->buff, '\n'), 0,
+			*line = ft_substr(current->buff, 0, ft_strlen(current->buff, '\n'));
+			current->buff = ft_substr(ft_strchr(current->buff, '\n') + 1, 0,
 					ft_strlen(ft_strchr(current->buff, '\n'), '\0'));
 			if (!(*line) || !current->buff)
 				return (-1);
 			return (1);
 		}
+		*line = current->buff;
 		current->buff = NULL;
 	}
-	buff = ft_read_line(fd, ft_strlen(buff, '\0'));
+	//printf("before read buff=[%s]\n", buff);
+	buff = ft_strjoin(buff, ft_read_line(fd, ft_strlen(buff, '\0')));
+	//printf("after read buff=[%s]\n", buff);
 	if (!buff)
 		return (-1);
 	if (ft_strlen(buff, '\0') < BUFFER_SIZE)
 		return (ft_fd_finish(current, buff, line));
 	*line = ft_strjoin(*line, ft_substr(buff, 0, ft_strlen(buff, '\n')));
-	current->buff = ft_substr(ft_strchr(buff, '\n'), 0,
+	current->buff = ft_substr(ft_strchr(buff, '\n') + 1, 0,
 			ft_strlen(ft_strchr(buff, '\n'), '\0'));
+	free(buff);
+	//printf("line=[%s] current->buff=[%s]\n", *line, current->buff);
 	if (!(*line) || !current->buff)
 		return (-1);
 	return (1);
 }
+
+/*int	main(void)
+{
+	char	*line;
+	int		fd;
+	int		r;
+
+	fd = open("lines", O_RDONLY);
+	r = get_next_line(fd, &line);
+	printf("\n\n---------- MAIN OUTPUT ----------\n");
+	printf("line=[%s]\nreturn=%d\n", line, r);
+	printf("---------------------------------\n\n");
+	free(line);
+	r = get_next_line(fd, &line);
+	printf("\n\n---------- MAIN OUTPUT ----------\n");
+	printf("line=[%s]\nreturn=%d\n", line, r);
+	printf("---------------------------------\n\n");
+	free(line);
+	r = get_next_line(fd, &line);
+	printf("\n\n---------- MAIN OUTPUT ----------\n");
+	printf("line=[%s]\nreturn=%d\n", line, r);
+	printf("---------------------------------\n\n");
+	free(line);
+}*/
 
 int	main(void)
 {
@@ -236,5 +268,7 @@ int	main(void)
 		if (r == -1)
 			break;
 	}
+	printf("line %d: %s\nreturn: %d\n", i++, line, r);
+	free(line);
 	return (0);
 }
