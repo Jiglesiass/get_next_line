@@ -6,15 +6,12 @@
 /*   By: joiglesi <joiglesi@student.42urduliz.com>  +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2021/06/24 14:25:23 by joiglesi          #+#    #+#             */
-/*   Updated: 2021/06/24 15:39:42 by joiglesi         ###   ########.fr       */
+/*   Updated: 2021/06/29 09:21:57 by joiglesi         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #ifndef GET_NEXT_LINE_H
 # define GET_NEXT_LINE_H
-#ifndef BUFFER_SIZE
-# define BUFFER_SIZE 32
-#endif
 #include <stdio.h>
 #include <fcntl.h>
 #include <unistd.h>
@@ -31,6 +28,7 @@ typedef struct s_buff {
 int		get_next_line(int fd, char **line);
 size_t	ft_strlen(const char *s, char c);
 char	*ft_strchr(const char *s, int c);
+char	*ft_strdup(const char *s1);
 int		ft_fd_finish(t_buff *current, t_buff **buffers);
 char	*ft_read_line(int fd);
 char	*ft_strjoin(const char *s1, const char *s2);

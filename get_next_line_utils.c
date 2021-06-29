@@ -6,7 +6,7 @@
 /*   By: joiglesi <joiglesi@student.42urduliz.com>  +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2021/06/24 14:22:24 by joiglesi          #+#    #+#             */
-/*   Updated: 2021/06/24 15:30:46 by joiglesi         ###   ########.fr       */
+/*   Updated: 2021/06/28 15:46:03 by joiglesi         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -24,6 +24,7 @@ char	*ft_strjoin(char const *s1, char const *s2)
 	if (jstr == NULL)
 	{
 		free((char *)s1);
+		free((char *)s2);
 		return (NULL);
 	}
 	len = ft_strlen(s1, '\0');
@@ -36,6 +37,7 @@ char	*ft_strjoin(char const *s1, char const *s2)
 		jstr[i++] = s2[j++];
 	jstr[i] = '\0';
 	free((char *)s1);
+	free((char *)s2);
 	return (jstr);
 }
 
@@ -51,10 +53,7 @@ char	*ft_substr(char const *s, unsigned int start, size_t len)
 	else
 		substr = (char *)malloc(len * sizeof(char) + 1);
 	if (substr == NULL)
-	{
 		free((char *)s);
-		return (NULL);
-	}
 	i = 0;
 	while (i < len && start < ft_strlen(s, '\0'))
 		substr[i++] = s[start++];

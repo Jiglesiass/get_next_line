@@ -6,11 +6,12 @@
 /*   By: joiglesi <joiglesi@student.42urduliz.com>  +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2021/06/21 08:41:36 by joiglesi          #+#    #+#             */
-/*   Updated: 2021/06/24 15:41:22 by joiglesi         ###   ########.fr       */
+/*   Updated: 2021/06/29 10:13:19 by joiglesi         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "get_next_line.h"
+#include <string.h>
 
 size_t	ft_strlen(const char *s, char c)
 {
@@ -38,6 +39,24 @@ char	*ft_strchr(const char *s, int c)
 	return (NULL);
 }
 
+char	*ft_strdup(const char *s1)
+{
+	char	*s2;
+	int		i;
+
+	s2 = (char *)malloc(sizeof(char) * (ft_strlen(s1, '\0') + 1));
+	if (!s2 || !s1)
+		return (NULL);
+	i = 0;
+	while (s1[i])
+	{
+		s2[i] = s1[i];
+		i++;
+	}
+	s2[i] = '\0';
+	return (s2);
+}
+
 int	ft_fd_finish(t_buff *current, t_buff **buffers)
 {
 	t_buff	*tr;
@@ -47,6 +66,7 @@ int	ft_fd_finish(t_buff *current, t_buff **buffers)
 	prev = *buffers;
 	if (prev->next)
 	{
+		//printf("\nENTERING FINISH LOOP\n");
 		tr = prev->next;
 		while (tr)
 		{
@@ -61,8 +81,11 @@ int	ft_fd_finish(t_buff *current, t_buff **buffers)
 	}
 	else
 	{
-		free(prev->buff);
-		free(prev);
+		//printf("freeing CURRENT->BUFF: %p\n", current->buff);
+		free(current->buff);
+		//printf("freeing CURRENT: %p\n", current);
+		free(current);
+		*buffers = NULL;
 	}
 	return (0);
 }
@@ -72,10 +95,12 @@ char	*ft_read_line(int fd)
 	char	*buff;
 	char	*tmp;
 	int		b_read;
+	int		endl;
 
 	buff = NULL;
+	endl = 0;
 	b_read = BUFFER_SIZE;
-	while (ft_strchr(buff, '\n') == NULL && b_read == BUFFER_SIZE)
+	while (!endl && b_read == BUFFER_SIZE)
 	{
 		tmp = buff;
 		buff = (char *)malloc(sizeof(char) * (BUFFER_SIZE + 1));
@@ -83,6 +108,8 @@ char	*ft_read_line(int fd)
 			return (NULL);
 		b_read = read(fd, buff, BUFFER_SIZE);
 		buff[b_read] = '\0';
+		if (ft_strchr(buff, '\n'))
+			endl = 1;
 		buff = ft_strjoin(tmp, buff);
 	}
 	return (buff);
@@ -100,12 +127,14 @@ int	get_next_line(int fd, char **line)
 	buff = NULL;
 	if (!ft_fd_search(buffers, fd))
 	{
+		//printf("adding element\n");
 		if (ft_lstadd_front(&buffers, ft_lstnew(fd)))
 			return (-1);
 	}
 	current = ft_fd_search(buffers, fd);
 	if (current->buff)
 	{
+		//printf("remainder found=[%s]\n", current->buff);
 		if (ft_strchr(current->buff, '\n'))
 		{
 			*line = ft_substr(current->buff, 0, ft_strlen(current->buff, '\n'));
@@ -116,49 +145,35 @@ int	get_next_line(int fd, char **line)
 			return (1);
 		}
 		if (current->last && !current->buff[0])
+		{
+			//printf("finishing from pre-read\n");
+			*line = ft_strdup(current->buff);
+			//printf("\n{%p}\n", *line);
 			return (ft_fd_finish(current, &buffers));
-		*line = current->buff;
-		current->buff = NULL;
+		}
+		buff = ft_strdup(current->buff);
+		//printf("\n{%p}\n", *line);
 	}
 	buff = ft_strjoin(buff, ft_read_line(fd));
 	if (!buff)
 		return (-1);
 	if (ft_strlen(buff, '\0') < BUFFER_SIZE)
 		current->last = 1;
-	if (!ft_strlen(buff, '\0'))
+	if (!ft_strlen(buff, '\0') || !ft_strchr(buff, '\n'))
+	{
+		//printf("finishing from post-read\n");
+		*line = ft_strjoin(*line, buff);
 		return (ft_fd_finish(current, &buffers));
+	}
 	*line = ft_strjoin(*line, ft_substr(buff, 0, ft_strlen(buff, '\n')));
 	current->buff = ft_substr(ft_strchr(buff, '\n') + 1, 0,
 			ft_strlen(ft_strchr(buff, '\n'), '\0'));
 	free(buff);
 	if (!(*line) || !current->buff)
 		return (-1);
+	//printf("last return reached last=%d buff=[%s] at %p\n", current->last, current->buff, current->buff);
 	return (1);
 }
-
-/*int	main(void)
-{
-	char	*line;
-	int		fd;
-	int		r;
-
-	fd = open("lines", O_RDONLY);
-	r = get_next_line(fd, &line);
-	printf("\n\n---------- MAIN OUTPUT ----------\n");
-	printf("line=[%s]\nreturn=%d\n", line, r);
-	printf("---------------------------------\n\n");
-	free(line);
-	r = get_next_line(fd, &line);
-	printf("\n\n---------- MAIN OUTPUT ----------\n");
-	printf("line=[%s]\nreturn=%d\n", line, r);
-	printf("---------------------------------\n\n");
-	free(line);
-	r = get_next_line(fd, &line);
-	printf("\n\n---------- MAIN OUTPUT ----------\n");
-	printf("line=[%s]\nreturn=%d\n", line, r);
-	printf("---------------------------------\n\n");
-	free(line);
-}*/
 
 /*int	main(void)
 {
@@ -173,7 +188,7 @@ int	get_next_line(int fd, char **line)
 	i = 1;
 	while ((r = get_next_line(fd, &line)))
 	{
-		printf("line %d: %s\nreturn: %d\n", i++, line, r);
+		printf("line %d: [%s]\nreturn: %d\n", i++, line, r);
 		free(line);
 		if (r == -1)
 			break;
@@ -181,5 +196,7 @@ int	get_next_line(int fd, char **line)
 	printf("----- Final Values -----\n");
 	printf("line=[%s]\n", line);
 	printf("r=%d\n", r);
+	r = get_next_line(fd, &line);
+	free(line);
 	return (0);
 }*/
