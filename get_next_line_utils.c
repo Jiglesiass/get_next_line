@@ -6,7 +6,7 @@
 /*   By: joiglesi <joiglesi@student.42urduliz.com>  +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2021/06/24 14:22:24 by joiglesi          #+#    #+#             */
-/*   Updated: 2021/06/29 11:22:39 by joiglesi         ###   ########.fr       */
+/*   Updated: 2021/06/29 13:26:44 by joiglesi         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -61,42 +61,46 @@ char	*ft_substr(char const *s, unsigned int start, size_t len)
 	return (substr);
 }
 
-int	ft_lstadd_front(t_buff **alst, t_buff *new)
+char	*ft_strdup(const char *s1)
 {
-	if (!new)
-		return (1);
-	new->next = *alst;
-	*alst = new;
-	return (0);
+	char	*s2;
+	int		i;
+
+	s2 = malloc(ft_strlen(s1, '\0') + 1);
+	if (!s2 || !s1)
+		return (NULL);
+	i = 0;
+	while (s1[i])
+	{
+		s2[i] = s1[i];
+		i++;
+	}
+	s2[i] = '\0';
+	return (s2);
 }
 
-t_buff	*ft_fd_search(t_buff *lst, int fd)
-{
-	t_buff	*tr;
+char	*ft_strchr(const char *s, int c)
+{	
+	size_t	i;
 
-	if (!lst)
+	if (!s)
 		return (NULL);
-	tr = lst;
-	while (tr)
-	{
-		if (tr->fd == fd)
-			return (tr);
-		tr = tr->next;
-	}
+	i = 0;
+	while (s[i] != c && s[i])
+		i++;
+	if (s[i] == c)
+		return ((char *)&s[i]);
 	return (NULL);
 }
 
-t_buff	*ft_lstnew(int fd)
+size_t	ft_strlen(const char *s, char c)
 {
-	t_buff	*new;
+	size_t	len;
 
-	new = (t_buff *)malloc(sizeof(t_buff));
-	if (!new)
-		return (NULL);
-	new->fd = fd;
-	new->buff = NULL;
-	new->next = NULL;
-	return (new);
+	if (!s)
+		return (0);
+	len = 0;
+	while (s[len] && s[len] != c)
+		len++;
+	return (len);
 }
-
-
