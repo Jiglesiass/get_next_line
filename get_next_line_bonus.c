@@ -6,13 +6,13 @@
 /*   By: joiglesi <joiglesi@student.42urduliz.com>  +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2021/06/21 08:41:36 by joiglesi          #+#    #+#             */
-/*   Updated: 2021/06/29 14:02:21 by joiglesi         ###   ########.fr       */
+/*   Updated: 2021/06/30 08:33:39 by joiglesi         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
-#include "get_next_line.h"
+#include "get_next_line_bonus.h"
 
-char	*ft_read_line(int fd)
+static char	*ft_read_line(int fd)
 {
 	char	*buff;
 	char	*tmp;
@@ -33,11 +33,15 @@ char	*ft_read_line(int fd)
 		if (ft_strchr(buff, '\n'))
 			endl = 1;
 		buff = ft_strjoin(tmp, buff);
+		if (!buff)
+			return (NULL);
 	}
+	if (b_read == -1)
+		return (NULL);
 	return (buff);
 }
 
-int	ft_before_read(int fd, char **line, char *buffers[], char **buff)
+static int	ft_before_read(int fd, char **line, char *buffers[], char **buff)
 {
 	if (buffers[fd])
 	{
@@ -45,6 +49,8 @@ int	ft_before_read(int fd, char **line, char *buffers[], char **buff)
 		{
 			*line = ft_substr(buffers[fd], 0, ft_strlen(buffers[fd], '\n'));
 			*buff = ft_strdup(buffers[fd]);
+			if (!(*buff))
+				return (-1);
 			free(buffers[fd]);
 			buffers[fd] = ft_substr(ft_strchr(*buff, '\n') + 1, 0,
 					ft_strlen(ft_strchr(*buff, '\n'), '\0'));
@@ -54,13 +60,15 @@ int	ft_before_read(int fd, char **line, char *buffers[], char **buff)
 			return (1);
 		}
 		*buff = ft_strdup(buffers[fd]);
+		if (!(*buff))
+			return (-1);
 		free(buffers[fd]);
 		buffers[fd] = NULL;
 	}
 	return (0);
 }
 
-int	ft_finish(int fd, char **line, char *buffers[], char *buff)
+static int	ft_finish(int fd, char **line, char *buffers[], char *buff)
 {
 	*line = buff;
 	free(buffers[fd]);
