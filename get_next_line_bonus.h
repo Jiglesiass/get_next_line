@@ -6,14 +6,13 @@
 /*   By: joiglesi <joiglesi@student.42urduliz.com>  +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2021/06/24 14:25:23 by joiglesi          #+#    #+#             */
-/*   Updated: 2021/06/30 08:17:26 by joiglesi         ###   ########.fr       */
+/*   Updated: 2021/06/30 08:51:44 by joiglesi         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #ifndef GET_NEXT_LINE_BONUS_H
 # define GET_NEXT_LINE_BONUS_H
 # include <stdio.h>
-# include <fcntl.h>
 # include <unistd.h>
 # include <stdlib.h>
 
