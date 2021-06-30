@@ -6,7 +6,7 @@
 /*   By: joiglesi <joiglesi@student.42urduliz.com>  +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2021/06/21 08:41:36 by joiglesi          #+#    #+#             */
-/*   Updated: 2021/06/30 08:33:39 by joiglesi         ###   ########.fr       */
+/*   Updated: 2021/06/30 09:01:33 by joiglesi         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -82,7 +82,7 @@ int	get_next_line(int fd, char **line)
 	char		*buff;
 	int			r;
 
-	if (fd < 0 || fd > FOPEN_MAX)
+	if (fd < 0 || fd > FOPEN_MAX || BUFFER_SIZE < 1)
 		return (-1);
 	*line = NULL;
 	buff = NULL;
